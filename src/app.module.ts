@@ -1,12 +1,15 @@
 import { Module } from '@nestjs/common';
-import { ScraperService } from './scraping/scraper.service';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
-import { AppController } from './app.controller';
+import { ScraperModule } from './scraping/scraper.module';
 
 @Module({
-  imports: [ConfigModule.forRoot(), ScheduleModule.forRoot()],
-  controllers: [AppController],
-  providers: [ScraperService],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    ScheduleModule.forRoot(),
+    ScraperModule,
+  ],
 })
 export class AppModule {}
