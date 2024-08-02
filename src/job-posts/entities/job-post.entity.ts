@@ -3,10 +3,12 @@ import {
   Column,
   PrimaryGeneratedColumn,
   CreateDateColumn,
+  Index,
 } from 'typeorm';
 import { HospitalName } from '../../common/enums/hospital-name.enum';
 
 @Entity('job_posts')
+@Index(['externalId', 'hospitalName'], { unique: true })
 export class JobPostEntity {
   @PrimaryGeneratedColumn()
   id: number;
