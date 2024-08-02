@@ -4,6 +4,7 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
 } from 'typeorm';
+import { HospitalName } from '../../common/enums/hospital-name.enum';
 
 @Entity('job_posts')
 export class JobPostEntity {
@@ -15,6 +16,12 @@ export class JobPostEntity {
 
   @Column({ length: 512, nullable: true })
   url: string;
+
+  @Column({ length: 255 })
+  externalId: string;
+
+  @Column({ type: 'enum', enum: HospitalName })
+  hospitalName: HospitalName;
 
   @Column({ type: 'timestamptz' })
   startAt: Date;

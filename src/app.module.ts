@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
-import { ScraperModule } from './scraping/scraper.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
+import { ScrapersModule } from './scrapers/scrapers.module';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -23,7 +23,7 @@ const isProduction = process.env.NODE_ENV === 'production';
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: !isProduction, // 프로덕션에서는 false로 설정
     }),
-    ScraperModule,
+    ScrapersModule,
   ],
 })
 export class AppModule {}
