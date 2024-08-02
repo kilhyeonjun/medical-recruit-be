@@ -1,6 +1,7 @@
+import dayjs from 'dayjs';
 import {
   ScrapingStrategy,
-  JobPosting,
+  JobPostDto,
   ScrapingStrategyName,
 } from './scraping-strategy.interface';
 import puppeteer, { PuppeteerLaunchOptions } from 'puppeteer';
@@ -8,7 +9,7 @@ import puppeteer, { PuppeteerLaunchOptions } from 'puppeteer';
 export class SeveranceScrapingStrategy implements ScrapingStrategy {
   name = ScrapingStrategyName.Severance;
 
-  async scrape(): Promise<JobPosting[]> {
+  async scrape(): Promise<JobPostDto[]> {
     const options: PuppeteerLaunchOptions = {
       headless: process.env.NODE_ENV === 'production',
     };
@@ -41,6 +42,10 @@ export class SeveranceScrapingStrategy implements ScrapingStrategy {
 
     await browser.close();
 
-    return jobs;
+    return jobs.map((job) => ({
+      ...job,
+      startAt: dayjs(job.startAt).toDate(),
+      endAt: dayjs(job.endAt).toDate(),
+    }));
   }
 }
