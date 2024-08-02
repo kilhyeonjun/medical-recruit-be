@@ -1,13 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import dayjs from 'dayjs';
 import puppeteer, { Page } from 'puppeteer';
 import { ScrapingStrategy } from '../interfaces/scraping-strategy.interface';
 import { JobPostDto } from '../../job-posts/dto/job-post.dto';
 import { HospitalName } from '../../common/enums/hospital-name.enum';
+import { JobPostsService } from '../../job-posts/job-posts.service';
 
 @Injectable()
 export class SeveranceScrapingStrategy implements ScrapingStrategy {
   name = HospitalName.Severance;
+  private readonly logger = new Logger(SeveranceScrapingStrategy.name);
+
+  constructor(private readonly jobPostsService: JobPostsService) {}
 
   async scrape(): Promise<JobPostDto[]> {
     const browser = await puppeteer.launch({
@@ -15,31 +19,56 @@ export class SeveranceScrapingStrategy implements ScrapingStrategy {
     });
     const page = await browser.newPage();
     const allJobs: JobPostDto[] = [];
+    let isDuplicateFound = false;
 
     try {
+      const latestJob = await this.jobPostsService.findLatestByHospital(
+        this.name,
+      );
+
       await page.goto('https://yuhs.recruiter.co.kr/app/jobnotice/list', {
         waitUntil: 'networkidle0',
       });
 
-      while (true) {
+      while (!isDuplicateFound) {
         await page.waitForSelector('.list-bbs', { timeout: 5000 });
 
         const jobs = await this.scrapeJobsFromPage(page);
-        allJobs.push(...jobs);
 
-        if (!(await this.goToNextPage(page))) {
+        for (const job of jobs) {
+          if (this.isDuplicate(job, latestJob)) {
+            isDuplicateFound = true;
+            this.logger.log(`Duplicate job found. Stopping scraping.`);
+            break;
+          }
+
+          allJobs.push(job);
+        }
+
+        if (isDuplicateFound || !(await this.goToNextPage(page))) {
           break;
         }
 
         await new Promise((resolve) => setTimeout(resolve, 200));
       }
     } catch (error) {
-      console.error('Error during scraping:', error);
+      this.logger.error('Error during scraping:', error);
     } finally {
       await browser.close();
     }
 
-    return allJobs;
+    this.logger.log(
+      `Scraping completed. Total new jobs found: ${allJobs.length}`,
+    );
+    return allJobs.reverse(); // 스크랩한 데이터를 역순으로 반환
+  }
+
+  private isDuplicate(
+    newJobPost: JobPostDto,
+    latestJobPost: JobPostDto | null,
+  ): boolean {
+    if (!latestJobPost) return false;
+    return newJobPost.externalId === latestJobPost.externalId;
   }
 
   private async scrapeJobsFromPage(page: Page): Promise<JobPostDto[]> {
