@@ -34,6 +34,7 @@ export class JobPostsService {
 
   async create(jobPostDto: JobPostDto): Promise<JobPostEntity> {
     const jobPost = this.jobPostRepository.create(jobPostDto);
+
     return this.jobPostRepository.save(jobPost);
   }
 
@@ -50,6 +51,7 @@ export class JobPostsService {
         savedEntities.push(savedEntity);
       }
       await queryRunner.commitTransaction();
+
       return savedEntities;
     } catch (err) {
       await queryRunner.rollbackTransaction();

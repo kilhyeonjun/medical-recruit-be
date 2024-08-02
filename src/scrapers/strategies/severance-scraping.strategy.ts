@@ -60,6 +60,7 @@ export class SeveranceScrapingStrategy implements ScrapingStrategy {
     this.logger.log(
       `Scraping completed. Total new jobs found: ${allJobs.length}`,
     );
+
     return allJobs.reverse(); // 스크랩한 데이터를 역순으로 반환
   }
 
@@ -68,12 +69,14 @@ export class SeveranceScrapingStrategy implements ScrapingStrategy {
     latestJobPost: JobPostDto | null,
   ): boolean {
     if (!latestJobPost) return false;
+
     return newJobPost.externalId === latestJobPost.externalId;
   }
 
   private async scrapeJobsFromPage(page: Page): Promise<JobPostDto[]> {
     const jobsData = await page.evaluate(() => {
       const jobElements = document.querySelectorAll('.list-bbs li');
+
       return Array.from(jobElements).map((element) => {
         const dateElement = element.querySelector('.list-bbs-date');
         const titleElement = element.querySelector('.list-bbs-notice-name');
@@ -116,8 +119,10 @@ export class SeveranceScrapingStrategy implements ScrapingStrategy {
 
       if (nextButton) {
         nextButton.click();
+
         return true;
       }
+
       return false;
     });
   }
