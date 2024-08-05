@@ -2,7 +2,7 @@ import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 import { HospitalName } from '../../common/enums/hospital-name.enum';
 
 @Entity('subscriptions')
-export class Subscription {
+export class SubscriptionEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
