@@ -1,22 +1,22 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { NotificationService } from './notification.service';
+import { NotificationsService } from './notifications.service';
 
 @Injectable()
-export class NotificationScheduler {
-  private readonly logger = new Logger(NotificationScheduler.name);
+export class NotificationsScheduler {
+  private readonly logger = new Logger(NotificationsScheduler.name);
 
-  constructor(private readonly notificationService: NotificationService) {}
+  constructor(private readonly notificationsService: NotificationsService) {}
 
   @Cron(CronExpression.EVERY_MINUTE)
   async handleCron() {
     this.logger.debug('Processing notifications');
-    await this.notificationService.processNotifications();
+    await this.notificationsService.processNotifications();
   }
 
   @Cron(CronExpression.EVERY_HOUR)
   async retryFailedNotifications() {
     this.logger.debug('Retrying failed notifications');
-    await this.notificationService.retryFailedNotifications();
+    await this.notificationsService.retryFailedNotifications();
   }
 }

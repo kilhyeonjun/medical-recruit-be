@@ -1,21 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan, In } from 'typeorm';
-import {
-  Notification,
-  NotificationStatus,
-} from './entities/notification.entity';
 import { NotificationType } from './enums/notification-type.enum';
 import { EmailService } from '../email/email.service';
 import dayjs from 'dayjs';
+import {
+  NotificationEntity,
+  NotificationStatus,
+} from './entities/notifications.entity';
 
 @Injectable()
-export class NotificationService {
-  private readonly logger = new Logger(NotificationService.name);
+export class NotificationsService {
+  private readonly logger = new Logger(NotificationsService.name);
 
   constructor(
-    @InjectRepository(Notification)
-    private notificationRepository: Repository<Notification>,
+    @InjectRepository(NotificationEntity)
+    private notificationRepository: Repository<NotificationEntity>,
     private emailService: EmailService,
   ) {}
 
@@ -23,7 +23,7 @@ export class NotificationService {
     type: NotificationType,
     recipient: string,
     content: Record<string, any>,
-  ): Promise<Notification> {
+  ): Promise<NotificationEntity> {
     const notification = this.notificationRepository.create({
       type,
       recipient,
@@ -43,11 +43,13 @@ export class NotificationService {
     }
   }
 
-  private async selectNotificationsForProcessing(): Promise<Notification[]> {
+  private async selectNotificationsForProcessing(): Promise<
+    NotificationEntity[]
+  > {
     return this.notificationRepository.manager.transaction(
       async (transactionalEntityManager) => {
         const notifications = await transactionalEntityManager
-          .createQueryBuilder(Notification, 'notification')
+          .createQueryBuilder(NotificationEntity, 'notification')
           .setLock('pessimistic_write')
           .where({
             status: NotificationStatus.PENDING,
@@ -62,7 +64,7 @@ export class NotificationService {
         if (notifications.length > 0) {
           const notificationIds = notifications.map((n) => n.id);
           await transactionalEntityManager.update(
-            Notification,
+            NotificationEntity,
             { id: In(notificationIds) },
             {
               status: NotificationStatus.PROCESSING,
@@ -76,7 +78,7 @@ export class NotificationService {
     );
   }
 
-  private async processNotification(notification: Notification) {
+  private async processNotification(notification: NotificationEntity) {
     try {
       switch (notification.type) {
         case NotificationType.EMAIL:
@@ -107,7 +109,7 @@ export class NotificationService {
     await this.notificationRepository.manager.transaction(
       async (transactionalEntityManager) => {
         await transactionalEntityManager.update(
-          Notification,
+          NotificationEntity,
           { id: notificationId, status: NotificationStatus.PROCESSING },
           {
             status: NotificationStatus.SENT,
@@ -125,7 +127,7 @@ export class NotificationService {
     await this.notificationRepository.manager.transaction(
       async (transactionalEntityManager) => {
         const notification = await transactionalEntityManager.findOne(
-          Notification,
+          NotificationEntity,
           {
             where: {
               id: notificationId,
@@ -151,7 +153,7 @@ export class NotificationService {
     await this.notificationRepository.manager.transaction(
       async (transactionalEntityManager) => {
         const failedNotifications = await transactionalEntityManager
-          .createQueryBuilder(Notification, 'notification')
+          .createQueryBuilder(NotificationEntity, 'notification')
           .setLock('pessimistic_write')
           .where({
             status: NotificationStatus.FAILED,
@@ -162,7 +164,7 @@ export class NotificationService {
         if (failedNotifications.length > 0) {
           const notificationIds = failedNotifications.map((n) => n.id);
           await transactionalEntityManager.update(
-            Notification,
+            NotificationEntity,
             { id: In(notificationIds) },
             { status: NotificationStatus.PENDING },
           );

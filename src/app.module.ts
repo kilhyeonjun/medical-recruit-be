@@ -3,6 +3,9 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { ScrapersModule } from './scrapers/scrapers.module';
+import { EmailModule } from './email/email.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -24,6 +27,9 @@ const isProduction = process.env.NODE_ENV === 'production';
       synchronize: !isProduction, // 프로덕션에서는 false로 설정
     }),
     ScrapersModule,
+    EmailModule,
+    NotificationsModule,
+    SubscriptionsModule,
   ],
 })
 export class AppModule {}
