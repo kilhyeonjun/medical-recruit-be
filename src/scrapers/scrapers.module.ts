@@ -3,11 +3,10 @@ import { ScrapersService } from './scrapers.service';
 import { JobPostsModule } from '../job-posts/job-posts.module';
 import { scrapers } from './strategies';
 import { SCRAPING_STRATEGIES } from './interfaces/scraping-strategy.interface';
-import { NotificationsModule } from '../notifications/notifications.module';
-import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
+import { ScrapersScheduler } from './scrapers.scheduler';
 
 @Module({
-  imports: [JobPostsModule, NotificationsModule, SubscriptionsModule],
+  imports: [JobPostsModule],
   providers: [
     ...scrapers,
     {
@@ -16,6 +15,7 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
       inject: scrapers,
     },
     ScrapersService,
+    ScrapersScheduler,
   ],
   exports: [ScrapersService],
 })

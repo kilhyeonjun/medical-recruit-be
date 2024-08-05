@@ -21,7 +21,7 @@ export class ScrapersService {
     }
   }
 
-  private async scrapeAndProcessStrategy(strategy: ScrapingStrategy) {
+  async scrapeAndProcessStrategy(strategy: ScrapingStrategy) {
     this.logger.log(`Starting scraping for ${strategy.name}`);
     const jobPosts = await strategy.scrape();
 
