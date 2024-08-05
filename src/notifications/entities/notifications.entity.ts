@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { NotificationType } from '../enums/notification-type.enum';
+import { NotificationContent } from '../dto/notification.dto';
 
 export enum NotificationStatus {
   PENDING = 'pending',
@@ -29,7 +30,7 @@ export class NotificationEntity {
   recipient: string;
 
   @Column('jsonb')
-  content: Record<string, any>;
+  content: NotificationContent;
 
   @Column({
     type: 'enum',

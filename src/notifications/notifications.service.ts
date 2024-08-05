@@ -8,6 +8,10 @@ import {
   NotificationEntity,
   NotificationStatus,
 } from './entities/notifications.entity';
+import {
+  CreateNotificationDto,
+  NotificationContent,
+} from './dto/notification.dto';
 
 @Injectable()
 export class NotificationsService {
@@ -20,7 +24,7 @@ export class NotificationsService {
   ) {}
 
   async createMany(
-    notifications: NotificationEntity[],
+    notifications: CreateNotificationDto[],
   ): Promise<NotificationEntity[]> {
     return this.notificationRepository.save(notifications);
   }
@@ -28,7 +32,7 @@ export class NotificationsService {
   async createNotification(
     type: NotificationType,
     recipient: string,
-    content: Record<string, any>,
+    content: NotificationContent,
   ): Promise<NotificationEntity> {
     const notification = this.notificationRepository.create({
       type,
@@ -59,9 +63,6 @@ export class NotificationsService {
           .setLock('pessimistic_write')
           .where({
             status: NotificationStatus.PENDING,
-            processingStartedAt: LessThan(
-              dayjs().subtract(5, 'minute').toDate(),
-            ),
           })
           .orderBy('notification.createdAt', 'ASC')
           .take(10)
@@ -74,7 +75,7 @@ export class NotificationsService {
             { id: In(notificationIds) },
             {
               status: NotificationStatus.PROCESSING,
-              processingStartedAt: new Date(),
+              processingStartedAt: dayjs().toDate(),
             },
           );
         }
@@ -119,7 +120,7 @@ export class NotificationsService {
           { id: notificationId, status: NotificationStatus.PROCESSING },
           {
             status: NotificationStatus.SENT,
-            sentAt: new Date(),
+            sentAt: dayjs().toDate(),
           },
         );
       },
