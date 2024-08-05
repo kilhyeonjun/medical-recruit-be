@@ -25,6 +25,7 @@ const isProduction = process.env.NODE_ENV === 'production';
       database: process.env.DATABASE_NAME,
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: !isProduction, // 프로덕션에서는 false로 설정
+      logging: !isProduction, // 프로덕션에서는 false로 설정
     }),
     ScrapersModule,
     EmailModule,

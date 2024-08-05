@@ -19,6 +19,12 @@ export class NotificationsService {
     private emailService: EmailService,
   ) {}
 
+  async createMany(
+    notifications: NotificationEntity[],
+  ): Promise<NotificationEntity[]> {
+    return this.notificationRepository.save(notifications);
+  }
+
   async createNotification(
     type: NotificationType,
     recipient: string,
