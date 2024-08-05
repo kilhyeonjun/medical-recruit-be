@@ -38,13 +38,13 @@ export class NotificationEntity {
   })
   status: NotificationStatus;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt: Date;
 
-  @Column({ nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
   sentAt: Date;
 
   @Column({ nullable: true })
@@ -53,6 +53,6 @@ export class NotificationEntity {
   @Column({ default: 0 })
   retryCount: number;
 
-  @Column({ nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
   processingStartedAt: Date;
 }
