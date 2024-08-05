@@ -1,3 +1,3 @@
 export enum HospitalName {
-  Severance = 'Severance',
+  Severance = '세브란스',
 }
