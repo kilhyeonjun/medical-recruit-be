@@ -16,37 +16,61 @@ export class ScrapersService {
     private readonly scrapingStrategies: ScrapingStrategy[],
   ) {}
 
-  async scrapeAll() {
+  async scrapeAll(isNotification = true) {
     for (const strategy of this.scrapingStrategies) {
-      await this.scrapeAndProcessStrategy(strategy);
+      await this.scrapeAndProcessStrategy(strategy, isNotification);
     }
   }
 
-  async scrapeOne(hospitalName: HospitalName) {
-    const strategy = this.scrapingStrategies.find(
-      (strategy) => strategy.name === hospitalName,
-    );
+  async scrapeOne(hospitalName: HospitalName, isNotification = true) {
+    const strategy = this.findStrategyByName(hospitalName);
 
     if (!strategy) {
       throw new Error(`No strategy found for ${hospitalName}`);
     }
 
-    await this.scrapeAndProcessStrategy(strategy);
+    await this.scrapeAndProcessStrategy(strategy, isNotification);
   }
 
-  private async scrapeAndProcessStrategy(strategy: ScrapingStrategy) {
-    this.logger.log(`Starting scraping for ${strategy.name}`);
+  private findStrategyByName(
+    hospitalName: HospitalName,
+  ): ScrapingStrategy | undefined {
+    return this.scrapingStrategies.find(
+      (strategy) => strategy.name === hospitalName,
+    );
+  }
+
+  private async scrapeAndProcessStrategy(
+    strategy: ScrapingStrategy,
+    isNotification = true,
+  ) {
+    this.logScrapingStart(strategy.name);
     const jobPosts = await strategy.scrape();
 
     if (jobPosts.length === 0) {
-      this.logger.log(`No new job posts found for ${strategy.name}`);
+      this.logNoNewJobPosts(strategy.name);
 
       return;
     }
 
-    const savedJobs = await this.jobPostsService.createMany(jobPosts);
+    const savedJobs = await this.jobPostsService.createMany(
+      jobPosts,
+      isNotification,
+    );
+    this.logSavedJobPosts(savedJobs.length, strategy.name);
+  }
+
+  private logScrapingStart(strategyName: string): void {
+    this.logger.log(`Starting scraping for ${strategyName}`);
+  }
+
+  private logNoNewJobPosts(strategyName: string): void {
+    this.logger.log(`No new job posts found for ${strategyName}`);
+  }
+
+  private logSavedJobPosts(savedJobsCount: number, strategyName: string): void {
     this.logger.log(
-      `Saved ${savedJobs.length} new job posts for ${strategy.name}`,
+      `Saved ${savedJobsCount} new job posts for ${strategyName}`,
     );
   }
 }

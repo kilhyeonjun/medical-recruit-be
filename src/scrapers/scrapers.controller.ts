@@ -9,11 +9,14 @@ export class ScrapersController {
   constructor(private readonly scrapersService: ScrapersService) {}
 
   @Post()
-  async scrape(@Body('hospitalName') hospitalName: HospitalName) {
+  async scrape(
+    @Body('hospitalName') hospitalName: HospitalName,
+    @Body('isNotification') isNotification: boolean,
+  ) {
     if (hospitalName) {
-      return this.scrapersService.scrapeOne(hospitalName);
+      return this.scrapersService.scrapeOne(hospitalName, isNotification);
     }
 
-    return this.scrapersService.scrapeAll();
+    return this.scrapersService.scrapeAll(isNotification);
   }
 }

@@ -21,9 +21,17 @@ export class JobPostsService {
     private readonly notificationsService: NotificationsService,
   ) {}
 
-  async createMany(jobPosts: JobPostDto[]): Promise<JobPostEntity[]> {
+  async createMany(
+    jobPosts: JobPostDto[],
+    createNotifications: boolean = true,
+  ): Promise<JobPostEntity[]> {
     const savedJobs = await this.jobPostRepository.save(jobPosts);
-    await this.processNotificationsForJobs(savedJobs);
+
+    if (createNotifications) {
+      await this.processNotificationsForJobs(savedJobs);
+    } else {
+      this.logger.log('Skipping notification creation as per request');
+    }
 
     return savedJobs;
   }
