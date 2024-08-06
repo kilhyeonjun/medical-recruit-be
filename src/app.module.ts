@@ -7,6 +7,9 @@ import { EmailModule } from './email/email.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { CommonModule } from './common/common.module';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 const isProduction = process.env.NODE_ENV === 'production';
 
