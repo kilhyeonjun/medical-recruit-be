@@ -6,6 +6,7 @@ import { ScrapersModule } from './scrapers/scrapers.module';
 import { EmailModule } from './email/email.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { CommonModule } from './common/common.module';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -31,6 +32,7 @@ const isProduction = process.env.NODE_ENV === 'production';
     EmailModule,
     NotificationsModule,
     SubscriptionsModule,
+    CommonModule,
   ],
 })
 export class AppModule {}

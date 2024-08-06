@@ -17,7 +17,8 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "generate-api-key": "ts-node scripts/generate-api-key.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
@@ -30,6 +31,7 @@
     "axios": "^1.7.3",
     "cheerio": "1.0.0-rc.12",
     "dayjs": "^1.11.12",
+    "dotenv": "^16.4.5",
     "nodemailer": "^6.9.14",
     "pg": "^8.12.0",
     "puppeteer": "^22.15.0",
