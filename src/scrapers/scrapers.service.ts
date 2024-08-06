@@ -4,6 +4,7 @@ import {
   SCRAPING_STRATEGIES,
   ScrapingStrategy,
 } from './interfaces/scraping-strategy.interface';
+import { HospitalName } from '../common/enums/hospital-name.enum';
 
 @Injectable()
 export class ScrapersService {
@@ -21,7 +22,19 @@ export class ScrapersService {
     }
   }
 
-  async scrapeAndProcessStrategy(strategy: ScrapingStrategy) {
+  async scrapeOne(hospitalName: HospitalName) {
+    const strategy = this.scrapingStrategies.find(
+      (strategy) => strategy.name === hospitalName,
+    );
+
+    if (!strategy) {
+      throw new Error(`No strategy found for ${hospitalName}`);
+    }
+
+    await this.scrapeAndProcessStrategy(strategy);
+  }
+
+  private async scrapeAndProcessStrategy(strategy: ScrapingStrategy) {
     this.logger.log(`Starting scraping for ${strategy.name}`);
     const jobPosts = await strategy.scrape();
 
