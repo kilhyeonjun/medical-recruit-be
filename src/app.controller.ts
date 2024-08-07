@@ -6,7 +6,7 @@ import { ApiKeyGuard } from './common/guards/api-key.guard';
 export class AppController {
   constructor() {}
 
-  @Get()
+  @Get('/hello')
   async index() {
     return 'Hello World!';
   }
