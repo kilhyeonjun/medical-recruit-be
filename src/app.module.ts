@@ -11,6 +11,8 @@ import { AppController } from './app.controller';
 import { S3Module } from './s3/s3.module';
 import { S3CertificatesService } from './s3/s3-certificates.service';
 
+const isLambda = process.env.MODE === 'lambda';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -21,7 +23,9 @@ import { S3CertificatesService } from './s3/s3-certificates.service';
         `.env.${process.env.NODE_ENV}.local`,
       ],
     }),
-    ScheduleModule.forRoot(),
+    ScheduleModule.forRoot({
+      cronJobs: !isLambda,
+    }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule, S3Module],
       inject: [ConfigService, S3CertificatesService],
