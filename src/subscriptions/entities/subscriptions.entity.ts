@@ -6,6 +6,7 @@ export class SubscriptionEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
+  // TODO: unique
   @Column()
   email: string;
 
