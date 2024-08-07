@@ -1,5 +1,8 @@
 service: medical-recruit-be
 
+org: kilpenguin
+app: medical-recruit-be
+
 frameworkVersion: '4'
 
 plugins:
@@ -17,7 +20,8 @@ provider:
         - Effect: 'Allow'
           Action:
             - 's3:GetObject'
-          Resource: '*'
+          Resource:
+            - 'arn:aws:s3:::${env:SSL_CERTIFICATE_S3_BUCKET}/${env:SSL_CERTIFICATE_S3_KEY}'
 
 package:
   individually: true
