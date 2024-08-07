@@ -58,7 +58,7 @@ build:
 
 functions:
   main:
-    handler: dist/src/lambda.handler
+    handler: dist/src/handlers/lambda.handler
     events:
       - httpApi:
           method: any
