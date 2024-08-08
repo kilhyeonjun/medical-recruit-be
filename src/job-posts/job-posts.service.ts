@@ -80,6 +80,7 @@ export class JobPostsService {
             subject: `새로운 채용 공고: ${jobPost.title}`,
             html: this.generateEmailHtml(jobPost, subscription),
           },
+          jobPostId: jobPost.id,
         });
       }
     }
