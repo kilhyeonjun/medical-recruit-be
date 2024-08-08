@@ -69,6 +69,8 @@ jobs:
           DATABASE_USER: ${{ secrets.DATABASE_USER }}
           DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
           DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
+          SSL_CERTIFICATE_S3_BUCKET: ${{ secrets.SSL_CERTIFICATE_S3_BUCKET }}
+          SSL_CERTIFICATE_S3_KEY: ${{ secrets.SSL_CERTIFICATE_S3_KEY }}
           SMTP_SERVICE: ${{ secrets.SMTP_SERVICE }}
           SMTP_SECURE: ${{ secrets.SMTP_SECURE }}
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
