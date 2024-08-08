@@ -42,7 +42,11 @@ export class SeveranceScrapingStrategy implements ScrapingStrategy {
             break;
           }
 
-          allJobs.push(job);
+          if (
+            allJobs.findIndex((j) => j.externalId === job.externalId) === -1
+          ) {
+            allJobs.push(job);
+          }
         }
 
         if (isDuplicateFound || !(await this.goToNextPage(page))) {
