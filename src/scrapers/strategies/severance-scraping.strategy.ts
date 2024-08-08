@@ -95,12 +95,15 @@ export class SeveranceScrapingStrategy implements ScrapingStrategy {
         const [startAt, endAt] =
           dateElement.textContent?.trim().split('~') ?? [];
 
+        const params = new URLSearchParams(linkElement.href.split('?')[1]);
+        const jobnoticeSn = params.get('jobnoticeSn');
+
         return {
-          title: titleElement.textContent?.trim() ?? '',
+          title: titleElement.textContent?.trim(),
           url: linkElement.href,
-          externalId: linkElement.href.split('/').pop() ?? '',
-          startAt: startAt?.trim() ?? '',
-          endAt: endAt?.trim() ?? '',
+          externalId: jobnoticeSn,
+          startAt: startAt?.trim(),
+          endAt: endAt?.trim(),
         };
       });
     });
