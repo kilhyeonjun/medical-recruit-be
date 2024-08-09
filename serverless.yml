@@ -17,6 +17,14 @@ provider:
   environment:
     NODE_ENV: ${self:provider.stage}
     MODE: lambda
+  vpc:
+    securityGroupIds:
+      - ${env:AWS_VPC_SECURITY_GROUP_ID}
+    subnetIds:
+      - ${env:AWS_VPC_SECURITY_SUBNET_ID_1}
+      - ${env:AWS_VPC_SECURITY_SUBNET_ID_2}
+      - ${env:AWS_VPC_SECURITY_SUBNET_ID_3}
+      - ${env:AWS_VPC_SECURITY_SUBNET_ID_4}
   iam:
     role:
       statements:
