@@ -4,9 +4,12 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToOne,
+  JoinColumn,
 } from 'typeorm';
 import { NotificationType } from '../enums/notification-type.enum';
 import { NotificationContent } from '../dto/notification.dto';
+import { JobPostEntity } from '../../job-posts/entities/job-post.entity';
 
 export enum NotificationStatus {
   PENDING = 'pending',
@@ -38,6 +41,13 @@ export class NotificationEntity {
     default: NotificationStatus.PENDING,
   })
   status: NotificationStatus;
+
+  @OneToOne(() => JobPostEntity)
+  @JoinColumn()
+  jobPost: JobPostEntity;
+
+  @Column({ nullable: true })
+  jobPostId: number;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;

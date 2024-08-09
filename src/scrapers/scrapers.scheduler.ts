@@ -11,7 +11,7 @@ export class ScrapersScheduler {
   constructor(private readonly scrapersService: ScrapersService) {}
 
   @Cron(CronExpression.EVERY_HOUR)
-  async handleCron() {
+  async scrapeSeverance() {
     this.logger.debug('Processing scrapers');
 
     await this.scrapersService.scrapeOne(HospitalName.Severance);

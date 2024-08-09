@@ -9,6 +9,7 @@ import { NotificationType } from '../notifications/enums/notification-type.enum'
 import { CreateNotificationDto } from '../notifications/dto/notification.dto';
 import { SubscriptionEntity } from '../subscriptions/entities/subscriptions.entity';
 import { HospitalName } from '../common/enums/hospital-name.enum';
+import dayjs from 'dayjs';
 
 @Injectable()
 export class JobPostsService {
@@ -63,6 +64,13 @@ export class JobPostsService {
     const notifications: CreateNotificationDto[] = [];
 
     for (const jobPost of jobPosts) {
+      const isActive = dayjs(jobPost.endAt).isAfter(dayjs());
+
+      if (!isActive) {
+        this.logger.log(`Skipping inactive job post: ${jobPost.title}`);
+        continue;
+      }
+
       const relevantSubscriptions = subscriptions.filter(
         (sub) =>
           sub.hospitalName === jobPost.hospitalName &&
@@ -80,6 +88,7 @@ export class JobPostsService {
             subject: `새로운 채용 공고: ${jobPost.title}`,
             html: this.generateEmailHtml(jobPost, subscription),
           },
+          jobPostId: jobPost.id,
         });
       }
     }

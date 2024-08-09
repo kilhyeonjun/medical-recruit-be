@@ -1,27 +1,37 @@
 import { Injectable, Logger } from '@nestjs/common';
 import dayjs from 'dayjs';
-import puppeteer, { Page } from 'puppeteer';
+import puppeteer, {
+  Browser,
+  Page,
+  PuppeteerLaunchOptions,
+} from 'puppeteer-core';
+import chromium from 'chrome-aws-lambda';
 import { ScrapingStrategy } from '../interfaces/scraping-strategy.interface';
 import { JobPostDto } from '../../job-posts/dto/job-post.dto';
 import { HospitalName } from '../../common/enums/hospital-name.enum';
 import { JobPostsService } from '../../job-posts/job-posts.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class SeveranceScrapingStrategy implements ScrapingStrategy {
   name = HospitalName.Severance;
   private readonly logger = new Logger(SeveranceScrapingStrategy.name);
 
-  constructor(private readonly jobPostsService: JobPostsService) {}
+  constructor(
+    private readonly jobPostsService: JobPostsService,
+    private readonly configService: ConfigService,
+  ) {}
 
   async scrape(): Promise<JobPostDto[]> {
-    const browser = await puppeteer.launch({
-      headless: process.env.NODE_ENV === 'production',
-    });
-    const page = await browser.newPage();
+    let browser: Browser | null = null;
     const allJobs: JobPostDto[] = [];
     let isDuplicateFound = false;
 
     try {
+      const options: PuppeteerLaunchOptions = await this.getBrowserOptions();
+      browser = await puppeteer.launch(options);
+
+      const page = await browser.newPage();
       const latestJob = await this.jobPostsService.findLatestByHospital(
         this.name,
       );
@@ -42,19 +52,25 @@ export class SeveranceScrapingStrategy implements ScrapingStrategy {
             break;
           }
 
-          allJobs.push(job);
+          if (
+            allJobs.findIndex((j) => j.externalId === job.externalId) === -1
+          ) {
+            allJobs.push(job);
+          }
         }
 
         if (isDuplicateFound || !(await this.goToNextPage(page))) {
           break;
         }
 
-        await new Promise((resolve) => setTimeout(resolve, 200));
+        await this.delay(200);
       }
     } catch (error) {
       this.logger.error('Error during scraping:', error);
     } finally {
-      await browser.close();
+      if (browser) {
+        await browser.close();
+      }
     }
 
     this.logger.log(
@@ -62,6 +78,45 @@ export class SeveranceScrapingStrategy implements ScrapingStrategy {
     );
 
     return allJobs.reverse(); // 스크랩한 데이터를 역순으로 반환
+  }
+
+  private async getBrowserOptions(): Promise<PuppeteerLaunchOptions> {
+    const isLambda = this.configService.get<string>('MODE') === 'lambda';
+    const isOffline = this.configService.get<string>('IS_OFFLINE') === 'true';
+
+    this.logger.log(
+      `Environment: isLambda=${isLambda}, isOffline=${isOffline}`,
+    );
+
+    if (isLambda && !isOffline) {
+      return {
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath,
+        headless: chromium.headless,
+      };
+    }
+
+    // For local development or serverless offline
+    const executablePath = this.configService.get<string>(
+      'CHROME_EXECUTABLE_PATH',
+    );
+
+    if (!executablePath) {
+      throw new Error(
+        'CHROME_EXECUTABLE_PATH must be set for local development or serverless offline',
+      );
+    }
+
+    return {
+      executablePath,
+      headless: this.configService.get<string>('CHROME_HEADLESS') !== 'false',
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    };
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   private isDuplicate(
@@ -91,12 +146,15 @@ export class SeveranceScrapingStrategy implements ScrapingStrategy {
         const [startAt, endAt] =
           dateElement.textContent?.trim().split('~') ?? [];
 
+        const params = new URLSearchParams(linkElement.href.split('?')[1]);
+        const jobnoticeSn = params.get('jobnoticeSn');
+
         return {
-          title: titleElement.textContent?.trim() ?? '',
+          title: titleElement.textContent?.trim(),
           url: linkElement.href,
-          externalId: linkElement.href.split('/').pop() ?? '',
-          startAt: startAt?.trim() ?? '',
-          endAt: endAt?.trim() ?? '',
+          externalId: jobnoticeSn,
+          startAt: startAt?.trim(),
+          endAt: endAt?.trim(),
         };
       });
     });
