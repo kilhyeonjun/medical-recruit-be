@@ -3,8 +3,10 @@ name: CI/CD Pipeline
 on:
   push:
     branches:
-      - main
+      - master
       - test/prod-ec2-cd
+    paths-ignore:
+      - README.md
 
 jobs:
   deploy:
