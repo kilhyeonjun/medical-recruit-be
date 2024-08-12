@@ -1,6 +1,6 @@
 import { DataSource, DataSourceOptions } from 'typeorm';
 import { config } from 'dotenv';
-import { S3 } from 'aws-sdk';
+// import { S3 } from 'aws-sdk';
 
 const NODE_ENV = process.env.NODE_ENV || 'production';
 
@@ -15,52 +15,52 @@ config({
 
 const isProduction = NODE_ENV === 'production';
 
-const getCertificateFromS3 = async (
-  bucket: string | undefined,
-  key: string | undefined,
-): Promise<string> => {
-  if (!bucket || !key) {
-    throw new Error('S3 bucket or key is not provided');
-  }
+// const getCertificateFromS3 = async (
+//   bucket: string | undefined,
+//   key: string | undefined,
+// ): Promise<string> => {
+//   if (!bucket || !key) {
+//     throw new Error('S3 bucket or key is not provided');
+//   }
 
-  const s3 = new S3({
-    region: process.env.AWS_REGION,
-  });
+//   const s3 = new S3({
+//     region: process.env.AWS_REGION,
+//   });
 
-  try {
-    const data = await s3
-      .getObject({
-        Bucket: bucket,
-        Key: key,
-      })
-      .promise();
+//   try {
+//     const data = await s3
+//       .getObject({
+//         Bucket: bucket,
+//         Key: key,
+//       })
+//       .promise();
 
-    if (!data.Body) {
-      throw new Error('S3 object body is empty');
-    }
+//     if (!data.Body) {
+//       throw new Error('S3 object body is empty');
+//     }
 
-    return data.Body.toString('utf-8');
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(
-        `Failed to retrieve certificate from S3: ${error.message}`,
-      );
-    }
-    throw new Error(
-      'An unknown error occurred while retrieving the certificate from S3',
-    );
-  }
-};
+//     return data.Body.toString('utf-8');
+//   } catch (error) {
+//     if (error instanceof Error) {
+//       throw new Error(
+//         `Failed to retrieve certificate from S3: ${error.message}`,
+//       );
+//     }
+//     throw new Error(
+//       'An unknown error occurred while retrieving the certificate from S3',
+//     );
+//   }
+// };
 
 const createDataSource = async (): Promise<DataSource> => {
-  let sslCa: string | undefined;
+  // let sslCa: string | undefined;
 
   if (isProduction) {
     try {
-      sslCa = await getCertificateFromS3(
-        process.env.SSL_CERTIFICATE_S3_BUCKET,
-        process.env.SSL_CERTIFICATE_S3_KEY,
-      );
+      // sslCa = await getCertificateFromS3(
+      //   process.env.SSL_CERTIFICATE_S3_BUCKET,
+      //   process.env.SSL_CERTIFICATE_S3_KEY,
+      // );
     } catch (error) {
       console.error('Error retrieving SSL certificate:', error);
       // 여기서 에러를 던지거나 기본 동작을 결정해야 합니다.
@@ -82,13 +82,11 @@ const createDataSource = async (): Promise<DataSource> => {
     entities: ['src/**/*.entity{.ts,.js}'],
     migrations: ['src/database/migrations/**/*{.ts,.js}'],
     subscribers: [],
-    ...(isProduction &&
-      sslCa && {
-        ssl: {
-          rejectUnauthorized: false,
-          ca: sslCa,
-        },
-      }),
+    ...(isProduction && {
+      ssl: {
+        rejectUnauthorized: false,
+      },
+    }),
   };
 
   return new DataSource(dataSourceOptions);

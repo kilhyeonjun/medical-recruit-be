@@ -39,7 +39,6 @@
     "aws-sdk": "^2.1669.0",
     "axios": "^1.7.3",
     "cheerio": "1.0.0-rc.12",
-    "chrome-aws-lambda": "^10.1.0",
     "dayjs": "^1.11.12",
     "dotenv": "^16.4.5",
     "nodemailer": "^6.9.14",

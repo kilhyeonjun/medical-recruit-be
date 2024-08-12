@@ -5,7 +5,6 @@ import puppeteer, {
   Page,
   PuppeteerLaunchOptions,
 } from 'puppeteer-core';
-import chromium from 'chrome-aws-lambda';
 import { ScrapingStrategy } from '../interfaces/scraping-strategy.interface';
 import { JobPostDto } from '../../job-posts/dto/job-post.dto';
 import { HospitalName } from '../../common/enums/hospital-name.enum';
@@ -66,7 +65,7 @@ export class SeveranceScrapingStrategy implements ScrapingStrategy {
         await this.delay(200);
       }
     } catch (error) {
-      this.logger.error('Error during scraping:', error);
+      throw error;
     } finally {
       if (browser) {
         await browser.close();
@@ -77,42 +76,42 @@ export class SeveranceScrapingStrategy implements ScrapingStrategy {
       `Scraping completed. Total new jobs found: ${allJobs.length}`,
     );
 
-    return allJobs.reverse(); // 스크랩한 데이터를 역순으로 반환
+    return allJobs.reverse();
   }
 
   private async getBrowserOptions(): Promise<PuppeteerLaunchOptions> {
-    const isLambda = this.configService.get<string>('MODE') === 'lambda';
-    const isOffline = this.configService.get<string>('IS_OFFLINE') === 'true';
+    const isProduction =
+      this.configService.get<string>('NODE_ENV') === 'production';
 
-    this.logger.log(
-      `Environment: isLambda=${isLambda}, isOffline=${isOffline}`,
-    );
-
-    if (isLambda && !isOffline) {
-      return {
-        args: chromium.args,
-        defaultViewport: chromium.defaultViewport,
-        executablePath: await chromium.executablePath,
-        headless: chromium.headless,
-      };
-    }
-
-    // For local development or serverless offline
+    // TODO: Serverless @sparticuz/chromium
     const executablePath = this.configService.get<string>(
       'CHROME_EXECUTABLE_PATH',
     );
 
     if (!executablePath) {
       throw new Error(
-        'CHROME_EXECUTABLE_PATH must be set for local development or serverless offline',
+        'CHROME_EXECUTABLE_PATH must be specified in the environment variables',
       );
     }
 
-    return {
+    const options: PuppeteerLaunchOptions = {
       executablePath,
-      headless: this.configService.get<string>('CHROME_HEADLESS') !== 'false',
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
     };
+
+    if (isProduction) {
+      // EC2 might require additional configurations
+      options.args.push('--disable-gpu');
+      options.args.push('--disable-dev-shm-usage');
+    }
+
+    // Override headless mode if specified in config
+    const headless = this.configService.get<string>('CHROME_HEADLESS');
+    if (headless !== undefined) {
+      options.headless = headless !== 'false';
+    }
+
+    return options;
   }
 
   private delay(ms: number): Promise<void> {
