@@ -5,6 +5,7 @@ export class CreateNotificationDto extends PickType(NotificationEntity, [
   'type',
   'recipient',
   'content',
+  'jobPostId',
 ] as const) {}
 
 export type NotificationContent = {
