@@ -23,6 +23,18 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+# Install Chromium and its minimal dependencies
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates
+
+# Tell Puppeteer to skip installing Chrome. We'll be using the installed package.
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    CHROME_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
 # Copy built assets from the build stage
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
