@@ -53,7 +53,7 @@ const isProduction = NODE_ENV === 'production';
 // };
 
 const createDataSource = async (): Promise<DataSource> => {
-  let sslCa: string | undefined;
+  // let sslCa: string | undefined;
 
   if (isProduction) {
     try {
