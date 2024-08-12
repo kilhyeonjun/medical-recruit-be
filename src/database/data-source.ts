@@ -85,8 +85,8 @@ const createDataSource = async (): Promise<DataSource> => {
     ...(isProduction &&
       sslCa && {
         ssl: {
+          rejectUnauthorized: false,
           ca: sslCa,
-          rejectUnauthorized: true,
         },
       }),
   };
