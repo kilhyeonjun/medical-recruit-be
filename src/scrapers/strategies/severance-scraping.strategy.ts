@@ -1,187 +1,133 @@
 import { Injectable, Logger } from '@nestjs/common';
 import dayjs from 'dayjs';
-import puppeteer, {
-  Browser,
-  Page,
-  PuppeteerLaunchOptions,
-} from 'puppeteer-core';
 import { ScrapingStrategy } from '../interfaces/scraping-strategy.interface';
 import { JobPostDto } from '../../job-posts/dto/job-post.dto';
 import { HospitalName } from '../../common/enums/hospital-name.enum';
 import { JobPostsService } from '../../job-posts/job-posts.service';
-import { ConfigService } from '@nestjs/config';
+import axios, { AxiosInstance } from 'axios';
+
+interface ApiJobData {
+  jobnoticeSn: number;
+  jobnoticeName: string;
+  systemKindCode: string;
+  applyStartDate: { time: number };
+  applyEndDate: { time: number };
+  receiptState: string;
+}
+
+interface ApiResponse {
+  pageUtil: { lastPage: number; currentPage: number };
+  list: ApiJobData[];
+}
 
 @Injectable()
 export class SeveranceScrapingStrategy implements ScrapingStrategy {
   name = HospitalName.Severance;
   private readonly logger = new Logger(SeveranceScrapingStrategy.name);
+  private readonly axiosInstance: AxiosInstance;
+  private readonly baseURL: string;
 
-  constructor(
-    private readonly jobPostsService: JobPostsService,
-    private readonly configService: ConfigService,
-  ) {}
+  constructor(private readonly jobPostsService: JobPostsService) {
+    this.baseURL = 'https://yuhs.recruiter.co.kr';
+
+    this.axiosInstance = axios.create({
+      baseURL: this.baseURL,
+    });
+  }
 
   async scrape(): Promise<JobPostDto[]> {
-    let browser: Browser | null = null;
-    const allJobs: JobPostDto[] = [];
-    let isDuplicateFound = false;
-
     try {
-      const options: PuppeteerLaunchOptions = await this.getBrowserOptions();
-      browser = await puppeteer.launch(options);
-
-      const page = await browser.newPage();
       const latestJob = await this.jobPostsService.findLatestByHospital(
         this.name,
       );
+      const allJobs = await this.scrapeAllPages();
+      const newJobs = this.filterNewJobs(allJobs, latestJob);
 
-      await page.goto('https://yuhs.recruiter.co.kr/app/jobnotice/list', {
-        waitUntil: 'networkidle0',
-      });
+      this.logger.log(
+        `Scraping completed. Total new jobs found: ${newJobs.length}`,
+      );
 
-      while (!isDuplicateFound) {
-        await page.waitForSelector('.list-bbs', { timeout: 5000 });
-
-        const jobs = await this.scrapeJobsFromPage(page);
-
-        for (const job of jobs) {
-          if (this.isDuplicate(job, latestJob)) {
-            isDuplicateFound = true;
-            this.logger.log(`Duplicate job found. Stopping scraping.`);
-            break;
-          }
-
-          if (
-            allJobs.findIndex((j) => j.externalId === job.externalId) === -1
-          ) {
-            allJobs.push(job);
-          }
-        }
-
-        if (isDuplicateFound || !(await this.goToNextPage(page))) {
-          break;
-        }
-
-        await this.delay(200);
-      }
+      return newJobs;
     } catch (error) {
+      this.logger.error(`Error during scraping: ${error.message}`, error.stack);
       throw error;
-    } finally {
-      if (browser) {
-        await browser.close();
+    }
+  }
+
+  private async scrapeAllPages(): Promise<JobPostDto[]> {
+    let currentPage = 1;
+    let lastPage = 1;
+    const allJobs: JobPostDto[] = [];
+
+    do {
+      try {
+        const { jobs, lastPage: pageCount } =
+          await this.scrapeJobsFromPage(currentPage);
+        allJobs.push(...jobs);
+        lastPage = pageCount;
+        currentPage++;
+      } catch (error) {
+        this.logger.warn(
+          `Error scraping page ${currentPage}: ${error.message}`,
+        );
+        break;
       }
-    }
+    } while (currentPage <= lastPage);
 
-    this.logger.log(
-      `Scraping completed. Total new jobs found: ${allJobs.length}`,
-    );
-
-    return allJobs.reverse();
+    return allJobs;
   }
 
-  private async getBrowserOptions(): Promise<PuppeteerLaunchOptions> {
-    const isProduction =
-      this.configService.get<string>('NODE_ENV') === 'production';
-
-    // TODO: Serverless @sparticuz/chromium
-    const executablePath = this.configService.get<string>(
-      'CHROME_EXECUTABLE_PATH',
-    );
-
-    if (!executablePath) {
-      throw new Error(
-        'CHROME_EXECUTABLE_PATH must be specified in the environment variables',
-      );
-    }
-
-    const options: PuppeteerLaunchOptions = {
-      executablePath,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    };
-
-    if (isProduction) {
-      // EC2 might require additional configurations
-      options.args.push('--disable-gpu');
-      options.args.push('--disable-dev-shm-usage');
-    }
-
-    // Override headless mode if specified in config
-    const headless = this.configService.get<string>('CHROME_HEADLESS');
-    if (headless !== undefined) {
-      options.headless = headless !== 'false';
-    }
-
-    return options;
-  }
-
-  private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
-  private isDuplicate(
-    newJobPost: JobPostDto,
-    latestJobPost: JobPostDto | null,
-  ): boolean {
-    if (!latestJobPost) return false;
-
-    return newJobPost.externalId === latestJobPost.externalId;
-  }
-
-  private async scrapeJobsFromPage(page: Page): Promise<JobPostDto[]> {
-    const jobsData = await page.evaluate(() => {
-      const jobElements = document.querySelectorAll('.list-bbs li');
-
-      return Array.from(jobElements).map((element) => {
-        const dateElement = element.querySelector('.list-bbs-date');
-        const titleElement = element.querySelector('.list-bbs-notice-name');
-        const linkElement = element.querySelector(
-          '.list-bbs-notice-name a',
-        ) as HTMLAnchorElement;
-
-        if (!dateElement || !titleElement || !linkElement) {
-          throw new Error('Required element not found');
-        }
-
-        const [startAt, endAt] =
-          dateElement.textContent?.trim().split('~') ?? [];
-
-        const params = new URLSearchParams(linkElement.href.split('?')[1]);
-        const jobnoticeSn = params.get('jobnoticeSn');
-
-        return {
-          title: titleElement.textContent?.trim(),
-          url: linkElement.href,
-          externalId: jobnoticeSn,
-          startAt: startAt?.trim(),
-          endAt: endAt?.trim(),
-        };
+  private async scrapeJobsFromPage(
+    page: number,
+  ): Promise<{ jobs: JobPostDto[]; lastPage: number }> {
+    try {
+      const params = new URLSearchParams({
+        pageSize: '10000',
+        currentPage: page.toString(),
       });
-    });
 
-    return jobsData.map((job) => ({
-      ...job,
-      hospitalName: this.name,
-      startAt: dayjs(job.startAt).toDate(),
-      endAt: dayjs(job.endAt).toDate(),
-      isOpenUntilFilled: false,
-    }));
+      const { data } = await this.axiosInstance.post<ApiResponse>(
+        `/app/jobnotice/list.json?${params.toString()}`,
+      );
+
+      const jobs = data.list.map((job) => this.mapApiJobToJobPostDto(job));
+
+      return { jobs, lastPage: data.pageUtil.lastPage };
+    } catch (error) {
+      this.logger.error(
+        `Error fetching jobs for page ${page}: ${error.message}`,
+        error.stack,
+      );
+      throw new Error(
+        `Failed to fetch jobs for page ${page}: ${error.message}`,
+      );
+    }
   }
 
-  private async goToNextPage(page: Page): Promise<boolean> {
-    return page.evaluate(() => {
-      const pageButtons = document.querySelectorAll('.paging-wrapper li a');
-      const currentButtonIndex = Array.from(pageButtons).findIndex((button) =>
-        button.classList.contains('active'),
-      );
-      const nextButton = pageButtons[currentButtonIndex + 1] as HTMLElement;
+  private filterNewJobs(
+    jobs: JobPostDto[],
+    latestJob: JobPostDto | null,
+  ): JobPostDto[] {
+    if (!latestJob) return jobs;
 
-      if (nextButton) {
-        nextButton.click();
+    const latestJobIndex = jobs.findIndex(
+      (job) => job.externalId === latestJob.externalId,
+    );
 
-        return true;
-      }
+    return latestJobIndex === -1 ? jobs : jobs.slice(0, latestJobIndex);
+  }
 
-      return false;
-    });
+  private mapApiJobToJobPostDto(job: ApiJobData): JobPostDto {
+    const jobnoticeSn = job.jobnoticeSn.toString();
+
+    return {
+      title: job.jobnoticeName,
+      url: `${this.baseURL}/app/jobnotice/view?systemKindCode=${job.systemKindCode}&jobnoticeSn=${jobnoticeSn}`,
+      externalId: jobnoticeSn,
+      startAt: dayjs(job.applyStartDate.time).toDate(),
+      endAt: dayjs(job.applyEndDate.time).toDate(),
+      isOpenUntilFilled: false,
+      hospitalName: this.name,
+    };
   }
 }
