@@ -35,12 +35,12 @@ export class SeveranceScrapingStrategy implements ScrapingStrategy {
     });
   }
 
-  async scrape(): Promise<JobPostDto[]> {
+  async scrape(pageSize: number = 100): Promise<JobPostDto[]> {
     try {
       const latestJob = await this.jobPostsService.findLatestByHospital(
         this.name,
       );
-      const allJobs = await this.scrapeAllPages(latestJob);
+      const allJobs = await this.scrapeAllPages(pageSize, latestJob);
       const newJobs = this.filterNewJobs(allJobs, latestJob);
 
       this.logger.log(
@@ -64,6 +64,7 @@ export class SeveranceScrapingStrategy implements ScrapingStrategy {
   }
 
   private async scrapeAllPages(
+    pageSize: number,
     latestJob: JobPostDto | null,
   ): Promise<JobPostDto[]> {
     let currentPage = 1;
@@ -71,8 +72,10 @@ export class SeveranceScrapingStrategy implements ScrapingStrategy {
     const allJobs: JobPostDto[] = [];
 
     do {
-      const { jobs, lastPage: pageCount } =
-        await this.scrapeJobsFromPage(currentPage);
+      const { jobs, lastPage: pageCount } = await this.scrapeJobsFromPage(
+        pageSize,
+        currentPage,
+      );
 
       for (const job of jobs) {
         if (this.isDuplicate(job, latestJob)) {
@@ -92,11 +95,12 @@ export class SeveranceScrapingStrategy implements ScrapingStrategy {
   }
 
   private async scrapeJobsFromPage(
+    pageSize: number,
     page: number,
   ): Promise<{ jobs: JobPostDto[]; lastPage: number }> {
     try {
       const params = new URLSearchParams({
-        pageSize: '10000',
+        pageSize: pageSize.toString(),
         currentPage: page.toString(),
       });
 
