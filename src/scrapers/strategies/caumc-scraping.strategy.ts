@@ -28,10 +28,10 @@ export class CaumcScrapingStrategy implements ScrapingStrategy {
   private readonly baseURL: string;
 
   constructor(private readonly jobPostsService: JobPostsService) {
-    const baseURL = 'https://caumc.recruiter.co.kr';
+    this.baseURL = 'https://caumc.recruiter.co.kr';
 
     this.axiosInstance = axios.create({
-      baseURL,
+      baseURL: this.baseURL,
     });
   }
 
