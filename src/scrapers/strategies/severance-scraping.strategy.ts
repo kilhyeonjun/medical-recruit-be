@@ -40,38 +40,52 @@ export class SeveranceScrapingStrategy implements ScrapingStrategy {
       const latestJob = await this.jobPostsService.findLatestByHospital(
         this.name,
       );
-      const allJobs = await this.scrapeAllPages();
+      const allJobs = await this.scrapeAllPages(latestJob);
       const newJobs = this.filterNewJobs(allJobs, latestJob);
 
       this.logger.log(
         `Scraping completed. Total new jobs found: ${newJobs.length}`,
       );
 
-      return newJobs;
+      return newJobs.reverse();
     } catch (error) {
       this.logger.error(`Error during scraping: ${error.message}`, error.stack);
       throw error;
     }
   }
 
-  private async scrapeAllPages(): Promise<JobPostDto[]> {
+  private isDuplicate(
+    newJobPost: JobPostDto,
+    latestJobPost: JobPostDto | null,
+  ): boolean {
+    return latestJobPost
+      ? newJobPost.externalId === latestJobPost.externalId
+      : false;
+  }
+
+  private async scrapeAllPages(
+    latestJob: JobPostDto | null,
+  ): Promise<JobPostDto[]> {
     let currentPage = 1;
     let lastPage = 1;
     const allJobs: JobPostDto[] = [];
 
     do {
-      try {
-        const { jobs, lastPage: pageCount } =
-          await this.scrapeJobsFromPage(currentPage);
-        allJobs.push(...jobs);
-        lastPage = pageCount;
-        currentPage++;
-      } catch (error) {
-        this.logger.warn(
-          `Error scraping page ${currentPage}: ${error.message}`,
-        );
-        break;
+      const { jobs, lastPage: pageCount } =
+        await this.scrapeJobsFromPage(currentPage);
+
+      for (const job of jobs) {
+        if (this.isDuplicate(job, latestJob)) {
+          this.logger.log(`Duplicate job found. Stopping filtering.`);
+
+          return allJobs;
+        }
+
+        allJobs.push(job);
       }
+
+      lastPage = pageCount;
+      currentPage++;
     } while (currentPage <= lastPage);
 
     return allJobs;
