@@ -88,7 +88,7 @@ export class EumcScrapingStrategy implements ScrapingStrategy {
 
     return {
       title: job.title,
-      url: job.links['jobs.show'],
+      url: `https://eumc.applyin.co.kr/jobs/${job.id}`,
       externalId: job.id.toString(),
       startAt: job.start ? dayjs(job.start).toDate() : null,
       endAt: !isOpenUntilFilled && job.end ? dayjs(job.end).toDate() : null,
