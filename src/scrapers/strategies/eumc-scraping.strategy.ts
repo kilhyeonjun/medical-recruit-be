@@ -25,56 +25,66 @@ export class EumcScrapingStrategy implements ScrapingStrategy {
   constructor(private readonly jobPostsService: JobPostsService) {}
 
   async scrape(): Promise<JobPostDto[]> {
-    const allJobs: JobPostDto[] = [];
-
     try {
       const latestJob = await this.jobPostsService.findLatestByHospital(
         this.name,
       );
-
       const jobs = await this.scrapeJobsFromPage();
+      const newJobs = this.filterNewJobs(jobs, latestJob);
 
-      for (const job of jobs) {
-        if (this.isDuplicate(job, latestJob)) {
-          this.logger.log(`Duplicate job found. Stopping scraping.`);
-          break;
-        }
+      this.logger.log(
+        `Scraping completed. Total new jobs found: ${newJobs.length}`,
+      );
 
-        if (allJobs.findIndex((j) => j.externalId === job.externalId) === -1) {
-          allJobs.push(job);
-        }
-      }
+      return newJobs.reverse();
     } catch (error) {
+      this.logger.error(`Error during scraping: ${error.message}`, error.stack);
       throw error;
     }
+  }
 
-    this.logger.log(
-      `Scraping completed. Total new jobs found: ${allJobs.length}`,
-    );
+  private filterNewJobs(
+    jobs: JobPostDto[],
+    latestJob: JobPostDto | null,
+  ): JobPostDto[] {
+    const newJobs: JobPostDto[] = [];
+    for (const job of jobs) {
+      if (this.isDuplicate(job, latestJob)) {
+        this.logger.log(`Duplicate job found. Stopping filtering.`);
+        break;
+      }
+      if (!newJobs.some((j) => j.externalId === job.externalId)) {
+        newJobs.push(job);
+      }
+    }
 
-    return allJobs.reverse();
+    return newJobs;
   }
 
   private isDuplicate(
     newJobPost: JobPostDto,
     latestJobPost: JobPostDto | null,
   ): boolean {
-    if (!latestJobPost) return false;
-
-    return newJobPost.externalId === latestJobPost.externalId;
+    return latestJobPost
+      ? newJobPost.externalId === latestJobPost.externalId
+      : false;
   }
 
   private async scrapeJobsFromPage(): Promise<JobPostDto[]> {
-    const response = await axios
-      .get<{ data: ApiJobData[] }>('https://eumc.applyin.co.kr/jobs/')
-      .then((res) => res.data);
+    try {
+      const response = await axios.get<{ data: ApiJobData[] }>(
+        'https://eumc.applyin.co.kr/jobs/',
+      );
 
-    return response.data.map(this.mapApiJobToJobPostDto);
+      return response.data.data.map(this.mapApiJobToJobPostDto.bind(this));
+    } catch (error) {
+      this.logger.error(`Error fetching jobs: ${error.message}`, error.stack);
+      throw error;
+    }
   }
 
   private mapApiJobToJobPostDto(job: ApiJobData): JobPostDto {
-    const isOpenUntilFilled =
-      job.categories.findIndex((c) => c.text === '수시') !== -1;
+    const isOpenUntilFilled = job.categories.some((c) => c.text === '수시');
 
     return {
       title: job.title,
@@ -82,8 +92,8 @@ export class EumcScrapingStrategy implements ScrapingStrategy {
       externalId: job.id.toString(),
       startAt: job.start ? dayjs(job.start).toDate() : null,
       endAt: !isOpenUntilFilled && job.end ? dayjs(job.end).toDate() : null,
-      isOpenUntilFilled: isOpenUntilFilled,
-      hospitalName: HospitalName.Eumc,
+      isOpenUntilFilled,
+      hospitalName: this.name,
     };
   }
 }
