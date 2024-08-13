@@ -17,7 +17,7 @@ export class JobPostEntity {
   title: string;
 
   @Column({ length: 512, nullable: true })
-  url: string;
+  url?: string;
 
   @Column({ length: 255 })
   externalId: string;
@@ -28,8 +28,11 @@ export class JobPostEntity {
   @Column({ type: 'timestamptz' })
   startAt: Date;
 
-  @Column({ type: 'timestamptz' })
-  endAt: Date;
+  @Column({ type: 'boolean', default: false })
+  isOpenUntilFilled: boolean; // 채용이 마감될 때까지
+
+  @Column({ type: 'timestamptz', nullable: true })
+  endAt?: Date;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
