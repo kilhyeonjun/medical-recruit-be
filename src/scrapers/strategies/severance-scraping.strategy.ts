@@ -163,6 +163,7 @@ export class SeveranceScrapingStrategy implements ScrapingStrategy {
       hospitalName: this.name,
       startAt: dayjs(job.startAt).toDate(),
       endAt: dayjs(job.endAt).toDate(),
+      isOpenUntilFilled: false,
     }));
   }
 

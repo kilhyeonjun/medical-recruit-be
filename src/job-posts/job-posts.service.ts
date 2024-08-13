@@ -153,6 +153,7 @@ export class JobPostsService {
       hospitalName: entity.hospitalName,
       startAt: entity.startAt,
       endAt: entity.endAt,
+      isOpenUntilFilled: entity.isOpenUntilFilled,
     };
   }
 }
