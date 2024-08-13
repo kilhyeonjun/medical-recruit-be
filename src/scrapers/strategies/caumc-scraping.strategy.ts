@@ -21,14 +21,14 @@ interface ApiResponse {
 }
 
 @Injectable()
-export class SeveranceScrapingStrategy implements ScrapingStrategy {
-  name = HospitalName.Severance;
-  private readonly logger = new Logger(SeveranceScrapingStrategy.name);
+export class CaumcScrapingStrategy implements ScrapingStrategy {
+  name = HospitalName.Caumc;
+  private readonly logger = new Logger(CaumcScrapingStrategy.name);
   private readonly axiosInstance: AxiosInstance;
   private readonly baseURL: string;
 
   constructor(private readonly jobPostsService: JobPostsService) {
-    this.baseURL = 'https://yuhs.recruiter.co.kr';
+    this.baseURL = 'https://caumc.recruiter.co.kr';
 
     this.axiosInstance = axios.create({
       baseURL: this.baseURL,
