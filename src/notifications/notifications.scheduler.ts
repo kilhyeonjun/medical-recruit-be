@@ -8,7 +8,7 @@ export class NotificationsScheduler {
 
   constructor(private readonly notificationsService: NotificationsService) {}
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_10_SECONDS)
   async handleCron() {
     this.logger.debug('Processing notifications');
     await this.notificationsService.processNotifications();
